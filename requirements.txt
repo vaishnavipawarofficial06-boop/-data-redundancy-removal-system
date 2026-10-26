@@ -8,3 +8,5 @@ pytest
 httpx
 psycopg[binary]
 redis
+
+python-dotenv
