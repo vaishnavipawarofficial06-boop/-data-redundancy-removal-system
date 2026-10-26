@@ -30,6 +30,6 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-cov ruff
       - name: Lint
-        run: ruff check .
+        run: ruff check . --select E4,E7,E9,F
       - name: Run tests with coverage
         run: pytest --cov=duplicate_checker --cov-report=term-missing --cov-report=xml
