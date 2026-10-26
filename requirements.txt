@@ -6,3 +6,5 @@ email-validator
 rapidfuzz
 pytest
 httpx
+psycopg[binary]
+redis
