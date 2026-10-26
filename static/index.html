@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DataGuard — Redundancy Removal</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#182230;--muted:#718096;--line:#e6ebf2;--brand:#4f46e5;--good:#059669;--warn:#d97706;--bad:#dc2626}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--ink)}
+header{background:#111827;color:white;padding:24px clamp(18px,4vw,56px);display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.brand{font-size:22px;font-weight:800;letter-spacing:-.5px}.brand span{color:#a5b4fc}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;background:var(--brand);color:white}.btn.secondary{background:#273449}.btn.light{background:#eef2ff;color:#3730a3}.btn.danger{background:#fee2e2;color:#991b1b}
+main{max-width:1240px;margin:28px auto;padding:0 20px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 5px 20px #18223006}.metric{font-size:30px;font-weight:800;letter-spacing:-1px}.label{font-size:13px;color:var(--muted)}.layout{display:grid;grid-template-columns: minmax(280px,.8fr) minmax(0,1.6fr);gap:18px}
+h2{font-size:17px;margin:0 0 15px}.field{margin-bottom:12px}label{display:block;font-size:12px;font-weight:750;color:#475569;margin-bottom:5px}
+input{width:100%;padding:11px 12px;border:1px solid #dbe2eb;border-radius:9px;font:inherit;background:white;color:var(--ink)}input:focus{outline:2px solid #c7d2fe;border-color:var(--brand)}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.toolbar{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}.toolbar input{flex:1;min-width:180px}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;border-bottom:1px solid var(--line);padding:12px 10px;font-size:13px}th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}.pill{display:inline-block;border-radius:99px;padding:4px 8px;background:#d1fae5;color:#065f46;font-size:11px;font-weight:800}.muted{color:var(--muted)}.rowactions{display:flex;gap:6px}.small{padding:6px 9px;font-size:12px}.status{padding:12px 14px;border-radius:10px;margin-bottom:15px;display:none}.status.ok{display:block;background:#d1fae5;color:#065f46}.status.err{display:block;background:#fee2e2;color:#991b1b}.empty{text-align:center;padding:35px;color:var(--muted)}.footer{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}.domains{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.domain{background:#f1f5f9;border-radius:8px;padding:7px 10px;font-size:12px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}}@media(max-width:460px){.grid{grid-template-columns:1fr 1fr}.card{padding:15px}.metric{font-size:24px}.formgrid{grid-template-columns:1fr}header{align-items:flex-start}}
+</style></head>
+<body>
+<header><div><div class="brand">◈ Data<span>Guard</span></div><p>Intelligent data quality · Duplicate detection · Record management</p></div>
+<div class="actions"><button class="btn secondary" onclick="refreshAll()">↻ Refresh</button><a href="/docs" style="text-decoration:none"><button class="btn light">API Docs ↗</button></a><a href="/records/export.csv"><button class="btn">Export CSV ↓</button></a></div></header>
+<main><div id="notice" class="status"></div>
+<section class="grid">
+<div class="card"><div class="label">Total stored records</div><div class="metric" id="total">—</div><div class="label">Unique records in database</div></div>
+<div class="card"><div class="label">Email domains</div><div class="metric" id="domainCount">—</div><div class="label">Distinct domains represented</div></div>
+<div class="card"><div class="label">Latest record</div><div class="metric" id="latest">—</div><div class="label">Most recently added ID</div></div>
+<div class="card"><div class="label">API status</div><div class="metric" style="color:var(--good)">Live</div><div class="label">FastAPI · SQLAlchemy</div></div>
+</section>
+<section class="layout">
+<div class="card"><h2>＋ Add a record</h2><p class="muted" style="font-size:13px;margin-top:-8px">Records are checked for exact and fuzzy duplicates before saving.</p>
+<form id="recordForm"><div class="field"><label for="name">FULL NAME</label><input id="name" required minlength="2" maxlength="100" placeholder="e.g. Asha Patil"></div>
+<div class="field"><label for="email">EMAIL ADDRESS</label><input id="email" required type="email" placeholder="asha@example.com"></div>
+<div class="field"><label for="phone">PHONE NUMBER</label><input id="phone" required minlength="10" maxlength="15" placeholder="+91 98765 43210"></div>
+<button class="btn" type="submit" style="width:100%">Check & Save Record</button></form>
+<hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+<h2>📊 Top email domains</h2><div id="domains" class="domains"><span class="muted">Loading…</span></div>
+<p class="muted" style="font-size:12px;margin-bottom:0">For bulk import, send a JSON array of records to <code>POST /records/bulk</code>. Maximum 500 rows per request.</p>
+</div>
+<div class="card"><h2>Record directory</h2><div class="toolbar"><input id="search" placeholder="Search name, email, phone…" aria-label="Search records"><button class="btn light" onclick="loadRecords(1)">Search</button><button class="btn secondary" onclick="clearSearch()">Clear</button></div>
+<div class="tablewrap"><table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Action</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">Loading records…</td></tr></tbody></table></div>
+<div class="footer"><span class="muted" id="pageInfo">—</span><div class="actions"><button class="btn light small" id="prev" onclick="loadRecords(page-1)">← Prev</button><button class="btn light small" id="next" onclick="loadRecords(page+1)">Next →</button></div></div>
+</div></section></main>
+<script>
+let page=1,pages=1,searchTimer;
+const $=id=>document.getElementById(id);
+function notice(message,type='ok'){const n=$('notice');n.textContent=message;n.className='status '+(type==='err'?'err':'ok');window.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>n.className='status',6500)}
+async function api(url,options={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});if(!r.ok){let m='Request failed ('+r.status+')';try{m=(await r.json()).detail||m}catch{}throw new Error(m)}if(r.status===204)return null;return r.json()}
+async function loadStats(){const s=await api('/stats');$('total').textContent=s.total_records;$('domainCount').textContent=s.top_email_domains.length;$('latest').textContent=s.recent_records.length?'#'+s.recent_records[0].id:'—';$('domains').innerHTML=s.top_email_domains.length?s.top_email_domains.map(d=>'<span class="domain">'+escapeHtml(d.domain)+' <b>· '+d.count+'</b></span>').join(''):'<span class="muted">No records yet</span>'}
+async function loadRecords(p=1){page=Math.max(1,p);const q=$('search').value.trim();try{const data=await api('/records?page='+page+'&page_size=8'+(q?'&q='+encodeURIComponent(q):''));const list=Array.isArray(data)?data:data.items;pages=Array.isArray(data)?1:Math.max(1,data.pages);$('rows').innerHTML=list.length?list.map(r=>'<tr><td>#'+r.id+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(r.email)+'</td><td>'+escapeHtml(r.phone)+'</td><td><button class="btn danger small" onclick="removeRecord('+r.id+')">Delete</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">No matching records found.</td></tr>';$('pageInfo').textContent=(data.total??list.length)+' record(s) · Page '+page+' of '+pages;$('prev').disabled=page<=1;$('next').disabled=page>=pages;$('prev').style.opacity=page<=1?.45:1;$('next').style.opacity=page>=pages?.45:1}catch(e){notice(e.message,'err')}}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function refreshAll(){try{await loadStats();await loadRecords(page)}catch(e){notice(e.message,'err')}}
+async function removeRecord(id){if(!confirm('Delete record #'+id+'? This cannot be undone.'))return;try{await api('/records/'+id,{method:'DELETE'});notice('Record deleted.');await refreshAll()}catch(e){notice(e.message,'err')}}
+function clearSearch(){$('search').value='';loadRecords(1)}
+$('search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadRecords(1),250)});
+$('recordForm').addEventListener('submit',async e=>{e.preventDefault();const payload={name:$('name').value,email:$('email').value,phone:$('phone').value};try{const result=await api('/records',{method:'POST',body:JSON.stringify(payload)});if(result.status==='success'){notice(result.message+' (Record #'+result.record_id+')');e.target.reset()}else{notice(result.message+(result.existing_record_id?' Matching record ID: #'+result.existing_record_id+'.':'')+(result.similarity_score?' Similarity: '+result.similarity_score+'%.':''),result.classification==='duplicate'?'err':'ok')}await refreshAll()}catch(err){notice(err.message,'err')}});
+refreshAll();
+</script></body></html>
