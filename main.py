@@ -201,7 +201,7 @@ def analytics_overview(db: Session = Depends(get_db), _user=Depends(require_admi
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_records": stats["total_records"],
         "distinct_email_domains": db.query(
-            func.count(func.distinct(func.lower(func.substr(Record.email, func.instr(Record.email, "@") + 1)))
+            func.count(func.distinct(func.lower(func.substr(Record.email, func.instr(Record.email, "@") + 1))))
         ).scalar() or 0,
         "top_email_domains": stats["top_email_domains"],
         "phone_length_distribution": [{"digits_or_chars": length, "count": count} for length, count in phone_lengths],
