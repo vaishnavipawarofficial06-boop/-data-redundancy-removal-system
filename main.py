@@ -48,8 +48,25 @@ def home():
     const token=localStorage.getItem('dataguard_access_token');
     const headers=new Headers(options.headers||{});
     if(token && !String(input).includes('/auth/token')) headers.set('Authorization','Bearer '+token);
-    return nativeFetch(input,{...options,headers});
+    return nativeFetch(input,{...options,headers}).then(response=>{
+      if(response.status===401 && token && !String(input).includes('/auth/token')) {
+        localStorage.removeItem('dataguard_access_token');
+        if(!document.getElementById('authGate')) location.reload();
+      }
+      return response;
+    });
   };
+  document.addEventListener('click',async event=>{
+    const link=event.target.closest('a[href="/records/export.csv"]');
+    if(!link || !localStorage.getItem('dataguard_access_token')) return;
+    event.preventDefault();
+    try {
+      const response=await window.fetch('/records/export.csv');
+      if(!response.ok) throw new Error('CSV export failed ('+response.status+')');
+      const blob=await response.blob(),url=URL.createObjectURL(blob),download=document.createElement('a');
+      download.href=url;download.download='records-export.csv';download.click();URL.revokeObjectURL(url);
+    } catch(error) { if(typeof notice==='function') notice(error.message,'err'); }
+  });
   document.getElementById('authForm').addEventListener('submit',async e=>{
     e.preventDefault();const err=document.getElementById('authError');err.textContent='';
     try {
