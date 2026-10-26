@@ -1,53 +1,38 @@
 # Advanced Python Project Guide
 
-This repository is a FastAPI + SQLAlchemy data redundancy removal application.
+## Implemented engineering features
 
-## Included project capabilities
+- FastAPI API with OpenAPI documentation.
+- SQLAlchemy storage using SQLite by default or PostgreSQL through `DATABASE_URL`.
+- Optional HS256 JWT authentication for a single environment-configured admin account.
+- Admin-only record API access when `AUTH_ENABLED=true`.
+- Exact SHA-256 fingerprints and explainable weighted fuzzy matching (name 40%, email 30%, phone 30%).
+- Duplicate preview endpoint with per-field scores.
+- Optional Redis cache for dashboard statistics with database fallback.
+- CSV formula-injection mitigation, paginated search, bulk import limits, analytics, and tests.
+- GitHub Actions CI, Docker build support, and environment examples.
 
-- Normalize contact records before comparison.
-- SHA-256 identity fingerprints for exact-match checks.
-- Fuzzy similarity scoring and duplicate/review classifications.
-- Search and pagination, CSV export, bulk import, dashboard statistics.
-- Automated unit tests for normalization, hashing, and classification.
-- GitHub Actions CI matrix for Python 3.10–3.13.
-- Docker image build recipe.
-
-## Local development
+## Development commands
 
 ```bash
-python -m venv .venv
-# Windows PowerShell: .venv\\Scripts\\Activate.ps1
-# macOS/Linux: source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install pytest-cov ruff
-pytest --cov=duplicate_checker --cov-report=term-missing
+python -m pip install -r requirements.txt
+pytest
 ruff check .
 uvicorn main:app --reload
 ```
 
-Open `http://127.0.0.1:8000` for the dashboard and `http://127.0.0.1:8000/docs` for OpenAPI docs.
+## Configure authentication
 
-## Docker
+Copy `.env.example` to `.env`, set `AUTH_ENABLED=true`, configure a unique `ADMIN_USERNAME`, a strong `ADMIN_PASSWORD`, and a random `JWT_SECRET_KEY` with at least 32 characters. The initial implementation intentionally uses one configured administrator rather than storing user accounts in the database.
 
-```bash
-docker build -t data-redundancy-removal-system .
-docker run --rm -p 8000:8000 data-redundancy-removal-system
-```
+## PostgreSQL and Redis
 
-## Production hardening checklist
+Set `DATABASE_URL=postgresql+psycopg://...` to use PostgreSQL. Set `REDIS_URL=redis://...` to enable short-lived statistics caching. Both are optional; SQLite and direct database reads are the defaults.
 
-Before deploying to the public internet, implement and verify:
+## Remaining production hardening
 
-1. Authentication and role-based authorization.
-2. Rate limiting and request-size limits at the API gateway.
-3. Database migrations (for example, Alembic) instead of relying on startup table creation.
-4. A configurable database URL and production database connection pooling.
-5. Structured logging, request IDs, metrics, and error monitoring.
-6. Backups, retention policy, and recovery tests.
-7. A review workflow for possible duplicates rather than silently discarding records.
-8. Integration tests using an isolated test database.
-9. Dependency pinning and automated dependency/security updates.
-10. A privacy policy and access controls for personal data.
-
-The Dockerfile is a deployment starting point, not a claim that the app is production-secure. Do not expose real contact data or secrets in sample data, logs, or test fixtures.
+- Add Alembic migrations and database backup/restore tests.
+- Add rate limiting, security monitoring, and structured request logging.
+- Replace the single-admin environment login with a proper user table and password hashing if multi-user access is required.
+- Add integration tests against disposable PostgreSQL/Redis services.
+- Fuzzy matching is explainable heuristic scoring, not AI/ML. Train and validate a model against labeled examples before describing it as AI-based.
