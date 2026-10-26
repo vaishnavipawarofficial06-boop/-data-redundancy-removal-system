@@ -62,7 +62,7 @@ def _decode_token(token: str) -> dict[str, Any]:
         return payload
     except HTTPException:
         raise
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+    except Exception as exc:
         raise HTTPException(status_code=401, detail="Invalid or expired bearer token") from exc
 
 
