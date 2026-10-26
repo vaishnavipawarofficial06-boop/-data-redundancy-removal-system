@@ -38,9 +38,9 @@ def create_access_token(subject: str, role: str = "admin", expires_in: int = 360
     now = int(time.time())
     header = {"alg": "HS256", "typ": "JWT"}
     payload = {"sub": subject, "role": role, "iat": now, "exp": now + expires_in}
-    encode = lambda obj: base64.urlsafe_b64encode(
-        json.dumps(obj, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    ).rstrip(b"=").decode("ascii")
+    def encode(obj):
+        raw = json.dumps(obj, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
     body = f"{encode(header)}.{encode(payload)}"
     signature = hmac.new(_secret(), body.encode("ascii"), hashlib.sha256).digest()
     return f"{body}.{base64.urlsafe_b64encode(signature).rstrip(b'=').decode('ascii')}"
