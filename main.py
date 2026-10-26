@@ -1,5 +1,6 @@
 import csv
 import io
+from collections import Counter
 from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -220,14 +221,16 @@ def get_records(
 
 def _stats(db: Session):
     total = db.query(func.count(Record.id)).scalar() or 0
-    domains = db.query(
-        func.lower(func.substr(Record.email, func.instr(Record.email, "@") + 1)).label("domain"),
-        func.count(Record.id).label("count"),
-    ).group_by("domain").order_by(func.count(Record.id).desc()).limit(5).all()
+    emails = [email for (email,) in db.query(Record.email).all()]
+    domain_counts = Counter(
+        email.lower().rsplit("@", 1)[-1] for email in emails if "@" in email
+    )
+    domains = sorted(domain_counts.items(), key=lambda item: (-item[1], item[0]))[:5]
     recent = db.query(Record).order_by(Record.id.desc()).limit(5).all()
     return {
         "total_records": total,
         "unique_records": total,
+        "distinct_email_domains": len(domain_counts),
         "top_email_domains": [{"domain": domain, "count": count} for domain, count in domains],
         "recent_records": [{"id": r.id, "name": r.name, "email": r.email, "phone": r.phone} for r in recent],
     }
@@ -250,9 +253,7 @@ def analytics_overview(db: Session = Depends(get_db), _user=Depends(require_admi
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_records": stats["total_records"],
-        "distinct_email_domains": db.query(
-            func.count(func.distinct(func.lower(func.substr(Record.email, func.instr(Record.email, "@") + 1))))
-        ).scalar() or 0,
+        "distinct_email_domains": stats["distinct_email_domains"],
         "top_email_domains": stats["top_email_domains"],
         "phone_length_distribution": [{"digits_or_chars": length, "count": count} for length, count in phone_lengths],
         "recent_records": stats["recent_records"],
